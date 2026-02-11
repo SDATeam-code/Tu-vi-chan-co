@@ -1,8 +1,6 @@
 
-import { GoogleGenAI, Type, Chat } from "@google/genai";
+import { GoogleGenAI, Type, Chat, Modality } from "@google/genai";
 import { UserInfo, ExtractedBirthInfo, ChatMessage } from "../types";
-
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || "" });
 
 /**
  * TRI THỨC CỐT LÕI TRÍCH XUẤT TỪ TÀI LIỆU 51 TRANG
@@ -10,9 +8,18 @@ const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || "" });
  */
 export const PRELOADED_KNOWLEDGE = `
 HỆ THỐNG LÝ LUẬN TỬ VI KẾT HỢP NAM PHÁI & TỨ HÓA (DỰA TRÊN TÀI LIỆU 51 TRANG):
+BỐI CẢNH THỜI GIAN HIỆN TẠI: NĂM 2026 (BÍNH NGỌ).
 
-1. NGUYÊN TẮC QUẢN LÝ TẦNG THỨ: 
-   - "Tầng trên quản tầng dưới": Tiên Thiên (Lá số gốc) quy định bản chất "Cái gì". Đại Vận (10 năm) quy định "Khoảng thời gian nào". Lưu Niên/Nguyệt Hạn quy định "Chính xác khi nào".
+1. NGUYÊN TẮC QUẢN LÝ TẦNG THỨ: "TẦNG TRÊN QUẢN TẦNG DƯỚI"
+   - Thứ tự tầng bậc: Tiên Thiên (Lá số gốc) -> Đại Vận (10 năm) -> Lưu Niên (1 năm) -> Lưu Nguyệt (Tháng) -> Lưu Vận (Ngày/Giờ/Thời điểm bùng nổ).
+   - Logic vận hành: 
+     * Tiên thiên quản Đại vận (Cái gốc quy định môi trường 10 năm).
+     * Đại vận quản Lưu niên (Môi trường 10 năm quy định biến cố năm).
+     * Lưu niên quản Lưu nguyệt (Hạn năm quy định sự việc tháng).
+     * Lưu nguyệt quản Lưu vận.
+   - Hiện tượng "Trùng điệp" (Cung vị chồng lấp):
+     * Nếu trùng 2 tầng (ví dụ: Lưu niên Mệnh trùng Mệnh Đại vận): Sự việc bùng nổ rõ ràng.
+     * Nếu trùng 3 tầng (ví dụ: Lưu niên Mệnh trùng Mệnh Đại vận trùng cung vị Tiên thiên quan trọng): Độ chính xác cực cao, sự kiện mang tính định mệnh.
 
 2. PHÂN LOẠI CUNG VỊ KHÍ SỐ (QUAN TRỌNG):
    - NGÃ CUNG (Mệnh, Tài, Quan, Phúc, Điền, Tật): Kỵ nhập Ngã cung là "Chủ động/Tự nguyện/Tích sản". Ví dụ: Tài Kỵ nhập Điền là dùng tiền mua nhà (Tốt).
@@ -21,7 +28,6 @@ HỆ THỐNG LÝ LUẬN TỬ VI KẾT HỢP NAM PHÁI & TỨ HÓA (DỰA TRÊN T
 3. LOGIC PHI HÓA CHUYÊN SÂU:
    - "Lộc là Nhân, Kỵ là Quả": Luôn tìm cung phi Hóa Lộc để biết nguyên nhân khởi điểm của rắc rối tại cung có Hóa Kỵ.
    - PHƯƠNG PHÁP HÓA GIẢI (Dùng Lộc giải Kỵ): Điều chỉnh hành vi tại cung có Lộc thay vì cố xử lý hậu quả tại cung có Kỵ.
-   - Cung vị chồng lấp: Nếu Lưu Niên Mệnh trùng Mệnh Đại Vận và trùng Tài Tiên Thiên thì năm đó Tài Lộc là trọng tâm.
    - Cung vị ẩn: Phu Thê là Thiên di của Quan Lộc. Điền Trạch là Tật của Tật (nơi dưỡng bệnh). Huynh Đệ là Tật của Quan.
 
 4. PHÂN BIỆT BIẾN CỐ:
@@ -31,22 +37,14 @@ HỆ THỐNG LÝ LUẬN TỬ VI KẾT HỢP NAM PHÁI & TỨ HÓA (DỰA TRÊN T
    - Hao tài Lừa đảo: Nô/Tử phi Kỵ xung Mệnh/Tài.
 
 5. NGUYỆT HẠN (THÁNG): 
-   - Sử dụng Ngũ Hổ Độn để tìm Can tháng. Phi Tứ Hóa tháng để tìm điểm rơi sự kiện.
+   - Sử dụng Ngũ Hổ Độn để tìm Can tháng. Phi Tứ Hóa tháng để tìm điểm rơi sự kiện dựa trên quản lý của Lưu Niên.
 `;
 
 export const extractBirthInfoFromImage = async (base64Image: string): Promise<ExtractedBirthInfo> => {
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || "" });
   const model = 'gemini-3-flash-preview';
-  const prompt = `Bạn là chuyên gia OCR Tử Vi. Hãy trích xuất thông tin từ hình ảnh lá số và trả về đúng định dạng JSON sau:
-  {
-    "fullName": "Họ tên đương số",
-    "gender": "Nam" hoặc "Nữ",
-    "birthDay": "Ngày sinh (số)",
-    "birthMonth": "Tháng sinh (số)",
-    "birthYear": "Năm sinh (số)",
-    "birthHour": "Giờ sinh (số)",
-    "birthMinute": "Phút sinh (số)"
-  }
-  Lưu ý: Chỉ trả về JSON, không kèm văn bản nào khác. Nếu không thấy thông tin, để trống giá trị.`;
+  
+  const prompt = `Bạn là chuyên gia OCR Tử Vi. Hãy trích xuất thông tin sinh thần từ hình ảnh lá số Tử Vi này. Trả về dữ liệu chính xác nhất.`;
   
   const imagePart = { inlineData: { mimeType: 'image/png', data: base64Image.split(',')[1] || base64Image } };
   
@@ -55,16 +53,25 @@ export const extractBirthInfoFromImage = async (base64Image: string): Promise<Ex
       model,
       contents: { parts: [imagePart, { text: prompt }] },
       config: { 
-        responseMimeType: "application/json"
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            fullName: { type: Type.STRING, description: "Họ tên đầy đủ" },
+            gender: { type: Type.STRING, description: "Nam hoặc Nữ" },
+            birthDay: { type: Type.STRING, description: "Ngày sinh dương lịch hoặc âm lịch tùy lá số" },
+            birthMonth: { type: Type.STRING, description: "Tháng sinh" },
+            birthYear: { type: Type.STRING, description: "Năm sinh" },
+            birthHour: { type: Type.STRING, description: "Giờ sinh" },
+            birthMinute: { type: Type.STRING, description: "Phút sinh" }
+          }
+        }
       }
     });
     
     const text = response.text;
     if (!text) return {};
-    
-    // Xử lý làm sạch chuỗi JSON nếu model trả về có kèm markdown
-    const jsonStr = text.replace(/```json|```/g, "").trim();
-    return JSON.parse(jsonStr);
+    return JSON.parse(text);
   } catch (e) {
     console.error("OCR Error:", e);
     return {};
@@ -72,8 +79,10 @@ export const extractBirthInfoFromImage = async (base64Image: string): Promise<Ex
 };
 
 export const analyzeTuViImage = async (base64Image: string, userInfo: UserInfo) => {
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || "" });
   const model = 'gemini-3-pro-preview';
-  const extractionPrompt = `Bạn là chuyên gia Số Hóa Tử Vi. Hãy trích xuất chi tiết 12 cung (bao gồm: Tên cung, Can Cung, các Chính tinh và Phụ tinh quan trọng, các mốc Đại vận và Lưu niên có ghi trên cung) dưới dạng Markdown để phục vụ luận giải chuyên sâu.`;
+  
+  const extractionPrompt = `Bạn là chuyên gia Số Hóa Tử Vi. Hãy trích xuất chi tiết 12 cung từ hình ảnh lá số. Lưu ý hiện tại chúng ta đang ở năm 2026. Trích xuất: Can Cung, các Chính tinh và Phụ tinh, các mốc Đại vận và Lưu niên. Trình bày rõ ràng dưới dạng Markdown.`;
   const imagePart = { inlineData: { mimeType: 'image/png', data: base64Image.split(',')[1] || base64Image } };
   
   const extractionResponse = await ai.models.generateContent({
@@ -84,6 +93,7 @@ export const analyzeTuViImage = async (base64Image: string, userInfo: UserInfo) 
   const extractedText = extractionResponse.text || "";
 
   const interpretationPrompt = `
+BỐI CẢNH HIỆN TẠI: NĂM 2026 (BÍNH NGỌ).
 DỰA TRÊN TÀI LIỆU CƠ SỞ ƯU TIÊN:
 ${userInfo.knowledgeBase || PRELOADED_KNOWLEDGE}
 
@@ -93,10 +103,11 @@ ${extractedText}
 THÔNG TIN ĐƯƠNG SỐ: ${JSON.stringify(userInfo)}
 
 YÊU CẦU LUẬN GIẢI CHUYÊN SÂU NĂM ${userInfo.viewYear}:
-1. PHÂN TÍCH TỨ HÓA PHI TINH: Xác định Can cung Đại vận và Can năm ${userInfo.viewYear}. Chỉ rõ Lộc/Kỵ bay vào Ngã Cung hay Tha Cung.
-2. TRUY TÌM NGUYÊN NHÂN: Nếu có biến cố xấu (Kỵ), hãy dùng quy tắc "Lộc là Nhân" để tìm cung khởi điểm.
-3. KẾT HỢP NAM PHÁI: Luận về bộ sao lưu (Thái Tuế, Kình Đà, Mã...) tại các cung quan trọng.
-4. GIẢI PHÁP HÓA GIẢI: Đưa ra lời khuyên "Ứng số" và "Dùng Lộc giải Kỵ" cụ thể cho năm nay.
+1. PHÂN TÍCH TẦNG THỨ: Tuân thủ nghiêm ngặt quy tắc "Tầng trên quản tầng dưới" (Tiên thiên -> Đại vận -> Lưu niên -> Lưu nguyệt). Kiểm tra sự "Trùng điệp" giữa các tầng để xác định mức độ bùng nổ và độ chính xác của hạn.
+2. PHÂN TÍCH TỨ HÓA PHI TINH: Xác định Can cung Đại vận và Can năm ${userInfo.viewYear}. Chỉ rõ Lộc/Kỵ bay vào Ngã Cung hay Tha Cung dựa trên tài liệu 51 trang.
+3. TRUY TÌM NGUYÊN NHÂN: Nếu có biến cố xấu, hãy dùng quy tắc "Lộc là Nhân" để tìm cung khởi điểm.
+4. KẾT HỢP NAM PHÁI: Luận về bộ sao lưu (Thái Tuế 2026 tại Ngọ, Kình Đà, Mã...) tại các cung quan trọng.
+5. GIẢI PHÁP HÓA GIẢI: Đưa ra lời khuyên "Ứng số" và "Dùng Lộc giải Kỵ" cụ thể.
 
 Trả lời bằng tiếng Việt, phong cách uyên bác, trang trọng.
 `;
@@ -104,7 +115,10 @@ Trả lời bằng tiếng Việt, phong cách uyên bác, trang trọng.
   const interpretationResponse = await ai.models.generateContent({
     model,
     contents: interpretationPrompt,
-    config: { thinkingConfig: { thinkingBudget: 15000 } }
+    config: { 
+      thinkingConfig: { thinkingBudget: 15000 },
+      systemInstruction: "Bạn là một bậc thầy Tử Vi cao cấp, am tường cả Nam Phái và Tứ Hóa. Bạn luôn tuân thủ nguyên tắc 'Tầng trên quản tầng dưới' và hiện tượng trùng điệp để đưa ra dự đoán chính xác nhất."
+    }
   });
 
   return { extractedText, interpretation: interpretationResponse.text || "" };
@@ -115,21 +129,24 @@ export const chatWithTuViExpert = async (
   message: string,
   context: { extractedData: string; interpretation: string; userInfo: UserInfo }
 ) => {
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || "" });
   const model = 'gemini-3-flash-preview';
   const chat = ai.chats.create({
     model,
     config: {
       systemInstruction: `
-Bạn là chuyên gia Tử Vi Sơn Cụ. Bạn trả lời dựa trên:
+Bạn là chuyên gia Tử Vi Sơn Cụ. Hiện tại là năm 2026. Bạn trả lời dựa trên:
 1. Tri thức tài liệu 51 trang: ${context.userInfo.knowledgeBase || PRELOADED_KNOWLEDGE}
 2. Dữ liệu lá số trích xuất: ${context.extractedData}
 3. Nội dung đã luận giải: ${context.interpretation}
 
-QUY TẮC:
-- Luôn kiểm tra đường bay Phi Hóa Lộc/Kỵ để giải thích bản chất rắc rối.
-- Phân biệt Ngã/Tha cung để xác định đó là biến cố chủ động hay bị động.
+QUY TẮC CỐT LÕI:
+- Luôn bám sát logic "Tầng trên quản tầng dưới": Tiên thiên quản Đại vận, Đại vận quản Lưu niên...
+- Phân tích sự "Trùng điệp" (2 tầng: rõ ràng; 3 tầng: cực kỳ chính xác).
+- Kiểm tra đường bay Phi Hóa Lộc/Kỵ để giải thích bản chất sự việc.
+- Phân biệt Ngã/Tha cung.
 - Đề xuất hóa giải theo nguyên tắc "Dùng Lộc giải Kỵ".
-- Trả lời bằng tiếng Việt, súc tích và chính xác.
+- Trả lời tiếng Việt, súc tích.
 `,
     }
   });

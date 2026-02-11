@@ -100,22 +100,23 @@ const TuViForm: React.FC<Props> = ({ userInfo, setUserInfo, onNext, onImageCaptu
       try {
         const info: ExtractedBirthInfo = await extractBirthInfoFromImage(base64);
         
-        // Cập nhật state với dữ liệu thô từ OCR, ép kiểu về string để phù hợp UserInfo
+        // Cập nhật state một cách an toàn
         setUserInfo({
           ...userInfo,
-          fullName: info.fullName?.toString() || userInfo.fullName,
+          fullName: info.fullName || userInfo.fullName,
           gender: (info.gender === 'Nam' || info.gender === 'Nữ') ? info.gender : userInfo.gender,
-          birthDay: info.birthDay?.toString() || userInfo.birthDay,
-          birthMonth: info.birthMonth?.toString() || userInfo.birthMonth,
-          birthYear: info.birthYear?.toString() || userInfo.birthYear,
-          birthHour: info.birthHour?.toString() || userInfo.birthHour,
-          birthMinute: info.birthMinute?.toString() || userInfo.birthMinute,
+          birthDay: info.birthDay || userInfo.birthDay,
+          birthMonth: info.birthMonth || userInfo.birthMonth,
+          birthYear: info.birthYear || userInfo.birthYear,
+          birthHour: info.birthHour || userInfo.birthHour,
+          birthMinute: info.birthMinute || userInfo.birthMinute,
         });
       } catch (err) {
         console.error("TuViForm OCR Error:", err);
         alert(userInfo.language === 'vi' ? "Không thể trích xuất dữ liệu. Vui lòng kiểm tra lại ảnh lá số." : "Could not extract data. Please check your chart image.");
       } finally {
         setIsAutoFilling(false);
+        if (fileInputRef.current) fileInputRef.current.value = '';
       }
     };
     reader.readAsDataURL(file);
