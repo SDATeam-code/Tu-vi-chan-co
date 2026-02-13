@@ -13,7 +13,6 @@ interface Props {
 const TuViForm: React.FC<Props> = ({ userInfo, setUserInfo, onNext, onImageCaptured }) => {
   const [isAutoFilling, setIsAutoFilling] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const knowledgeInputRef = useRef<HTMLInputElement>(null);
 
   const t = {
     vi: {
@@ -95,12 +94,14 @@ const TuViForm: React.FC<Props> = ({ userInfo, setUserInfo, onNext, onImageCaptu
     const reader = new FileReader();
     reader.onloadend = async () => {
       const base64 = reader.result as string;
+      // Thông báo cho App component về ảnh mới tải lên
       if (onImageCaptured) onImageCaptured(base64);
       
       try {
         const info: ExtractedBirthInfo = await extractBirthInfoFromImage(base64);
         
-        // Cập nhật state một cách an toàn
+        // Cập nhật state với dữ liệu đã trích xuất
+        // Đảm bảo mapping chính xác các trường và giá trị mặc định
         setUserInfo({
           ...userInfo,
           fullName: info.fullName || userInfo.fullName,
@@ -113,9 +114,10 @@ const TuViForm: React.FC<Props> = ({ userInfo, setUserInfo, onNext, onImageCaptu
         });
       } catch (err) {
         console.error("TuViForm OCR Error:", err);
-        alert(userInfo.language === 'vi' ? "Không thể trích xuất dữ liệu. Vui lòng kiểm tra lại ảnh lá số." : "Could not extract data. Please check your chart image.");
+        alert(userInfo.language === 'vi' ? "Không thể tự động điền. Vui lòng kiểm tra lại ảnh lá số." : "Auto-fill failed. Please check your chart image.");
       } finally {
         setIsAutoFilling(false);
+        // Reset file input để có thể chọn lại cùng 1 file nếu cần
         if (fileInputRef.current) fileInputRef.current.value = '';
       }
     };
@@ -243,7 +245,6 @@ const TuViForm: React.FC<Props> = ({ userInfo, setUserInfo, onNext, onImageCaptu
           </div>
         </div>
 
-        {/* Knowledge Selection Section */}
         <div className="p-5 bg-[#fff9f0] rounded-xl border-2 border-[#d4b38a] shadow-inner">
           <label className="block text-sm font-bold text-[#8b4513] mb-3 uppercase tracking-wider">☯ {t.knowledgeLabel}</label>
           <div className="flex flex-col gap-3">
