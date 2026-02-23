@@ -1,5 +1,6 @@
 
 import React, { useState } from 'react';
+import { Compass, ScrollText, Sparkles, History } from 'lucide-react';
 import { UserInfo, AppStep, AnalysisResult } from './types';
 import { analyzeTuViImage } from './services/geminiService';
 import TuViForm from './components/TuViForm';
@@ -108,11 +109,20 @@ const App: React.FC = () => {
 
   return (
     <div className="min-h-screen pb-20 bg-[#fcfaf7]">
-      <header className="bg-[#8b4513] text-white py-8 shadow-2xl mb-12 border-b-4 border-[#d4b38a] no-print">
-        <div className="container mx-auto px-4 text-center">
+      <header className="bg-[#8b4513] text-white py-10 shadow-2xl mb-12 border-b-4 border-[#d4b38a] no-print relative overflow-hidden">
+        <div className="absolute top-0 left-0 w-full h-full opacity-10 pointer-events-none">
+          <div className="absolute top-[-10%] left-[-5%] w-64 h-64 border-2 border-white rounded-full animate-pulse"></div>
+          <div className="absolute bottom-[-20%] right-[-10%] w-96 h-96 border-2 border-white rounded-full animate-pulse"></div>
+        </div>
+        <div className="container mx-auto px-4 text-center relative z-10">
+          <div className="flex justify-center mb-4">
+            <Compass className="w-12 h-12 text-[#d4b38a] animate-spin-slow" />
+          </div>
           <p className="text-[#d4b38a] uppercase text-xs tracking-[0.5em] font-bold mb-2">Sơn Cụ Entertainment</p>
           <h1 className="text-5xl font-bold tracking-widest font-serif mb-3">TỬ VI CHÂN CƠ</h1>
-          <p className="text-[#d4b38a] uppercase text-sm tracking-[0.4em] font-semibold">Nam Phái Nghiệm Lý • Tứ Hóa Phi Tinh</p>
+          <p className="text-[#d4b38a] uppercase text-sm tracking-[0.4em] font-semibold flex items-center justify-center gap-3">
+            <ScrollText className="w-4 h-4" /> Nam Phái Nghiệm Lý • Tứ Hóa Phi Tinh <Sparkles className="w-4 h-4" />
+          </p>
         </div>
       </header>
 

@@ -1,5 +1,5 @@
 
-import { GoogleGenAI, Type, Chat, Modality } from "@google/genai";
+import { GoogleGenAI, Type, Chat, Modality, ThinkingLevel } from "@google/genai";
 import { UserInfo, ExtractedBirthInfo, ChatMessage } from "../types";
 
 /**
@@ -48,7 +48,7 @@ QUY ƯỚC THỜI GIAN: HIỆN TẠI LÀ NĂM 2026 (BÍNH NGỌ). TUYỆT ĐỐI
 
 export const extractBirthInfoFromImage = async (base64Image: string): Promise<ExtractedBirthInfo> => {
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || "" });
-  const model = 'gemini-3-flash-preview';
+  const model = 'gemini-3.1-pro-preview';
   
   const prompt = `Bạn là chuyên gia OCR Tử Vi. Hãy trích xuất thông tin sinh thần từ hình ảnh lá số. 
   Yêu cầu trả về đúng định dạng JSON. Không được nhầm lẫn thông tin. 
@@ -89,15 +89,41 @@ export const extractBirthInfoFromImage = async (base64Image: string): Promise<Ex
 
 export const analyzeTuViImage = async (base64Image: string, userInfo: UserInfo) => {
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || "" });
-  const model = 'gemini-3-pro-preview';
+  const model = 'gemini-3.1-pro-preview';
   
-  const extractionPrompt = `Bạn là chuyên gia Số Hóa Tử Vi. Hãy trích xuất chi tiết 12 cung từ lá số này. 
-  Lưu ý hiện tại là năm 2026 (Bính Ngọ). Trích xuất Can Cung, Chính Tinh, Phụ Tinh và các mốc Đại vận/Lưu niên hiện có trên hình.`;
+  const extractionPrompt = `Bạn là chuyên gia Số Hóa Tử Vi cao cấp. Hãy trích xuất TUYỆT ĐỐI ĐẦY ĐỦ và phân loại chi tiết dữ liệu từ lá số này. KHÔNG ĐƯỢC BỎ SÓT BẤT KỲ THÔNG TIN NÀO dù là nhỏ nhất.
+
+CẤU TRÚC DỮ LIỆU YÊU CẦU:
+
+1. THÔNG TIN TỔNG QUÁT:
+   - Họ tên, Giới tính.
+   - Ngày, tháng, năm, giờ sinh (Dương lịch & Âm lịch).
+   - Bản mệnh, Cục, Chủ Mệnh, Chủ Thân.
+
+2. CHI TIẾT 12 CUNG VỊ (QUAN TRỌNG): Với mỗi cung trong 12 cung, hãy trích xuất:
+   - Tên cung chức (ví dụ: Mệnh, Phụ mẫu...).
+   - CAN CHI của cung: Ghi đầy đủ (ví dụ: G.Thìn -> Giáp Thìn, B.Ngọ -> Bính Ngọ...).
+   - PHI HÓA TỰ CUNG: Từ Can của cung đó, xác định xem có Hóa Lộc hay Hóa Kỵ bay sang cung nào khác không (Lộc Xuất, Kỵ Xuất). Ví dụ: "Can Giáp khiến Liêm Trinh hóa Lộc tại cung Quan".
+   - Đại vận: Khoảng tuổi ghi tại cung.
+   - Trạng thái: Cung Đại Vận hiện tại, cung Tiểu Vận/Lưu Niên năm 2026.
+
+3. HỆ THỐNG SAO TOÀN DIỆN (Tại mỗi cung):
+   - CHÍNH TINH: Tên sao + Trạng thái (Miếu, Vượng, Đắc, Bình, Hãm).
+   - PHỤ TINH: Liệt kê TẤT CẢ phụ tinh, không bỏ sót sao nào.
+   - VÒNG SAO: Phân loại rõ các sao thuộc vòng Thái Tuế, Lộc Tồn, Tràng Sinh.
+   - SAO LƯU: Các sao lưu năm 2026 (Lưu Thái Tuế, Lưu Lộc Tồn, Lưu Thiên Mã...).
+
+4. BIẾN ĐỘNG & GHI CHÚ:
+   - Vị trí các tháng (Lưu Nguyệt).
+   - Vị trí TUẦN, TRIỆT (Tuần Trung Không Vong, Triệt Lộ Không Vong) và các cung bị ảnh hưởng.
+   - Bất kỳ con số hoặc ký hiệu lạ nào khác trên lá số.
+
+Lưu ý: Hiện tại là năm 2026 (Bính Ngọ). Hãy trình bày dữ liệu dưới dạng Markdown rành mạch, sử dụng bảng hoặc danh sách để đảm bảo tính hệ thống cao nhất.`;
   
   const imagePart = { inlineData: { mimeType: 'image/png', data: base64Image.split(',')[1] || base64Image } };
   
   const extractionResponse = await ai.models.generateContent({
-    model: 'gemini-3-flash-preview',
+    model: 'gemini-3.1-pro-preview',
     contents: { parts: [imagePart, { text: extractionPrompt }] },
   });
 
@@ -105,6 +131,8 @@ export const analyzeTuViImage = async (base64Image: string, userInfo: UserInfo) 
 
   const interpretationPrompt = `
 BỐI CẢNH: NĂM 2026 (BÍNH NGỌ). ĐANG XEM HẠN NĂM ${userInfo.viewYear}.
+NGÔN NGỮ TRẢ LỜI: ${userInfo.language === 'en' ? 'Tiếng Anh (English)' : 'Tiếng Việt'}.
+
 DỰA TRÊN TÀI LIỆU CƠ SỞ ƯU TIÊN:
 ${userInfo.knowledgeBase || PRELOADED_KNOWLEDGE}
 
@@ -119,14 +147,26 @@ YÊU CẦU LUẬN GIẢI:
 3. PHI HÓA TỨ HÓA: Dùng Can năm 2026 (Bính) để phi Tứ Hóa. Phân tích Ngã cung/Tha cung.
 4. TÌM NGUYÊN NHÂN & HÓA GIẢI: "Lộc là Nhân, Kỵ là Quả". Dùng Lộc giải Kỵ.
 
-Trả lời tiếng Việt, trang trọng, chuyên sâu.
+${userInfo.language === 'en' ? `
+SPECIAL INSTRUCTION FOR ENGLISH:
+- Translate the entire interpretation into English.
+- For technical terms (Stars, Palaces, Cycles, Transformations), use the English translation followed by the original Vietnamese name in parentheses.
+- Examples: 
+  * Emperor Star (Tử Vi)
+  * Major Cycle (Đại Vận)
+  * Minor Cycle (Tiểu Vận)
+  * Life Palace (Cung Mệnh)
+  * Wealth Palace (Cung Tài Bạch)
+  * Transformation to Prosperity (Hóa Lộc)
+  * Transformation to Annoyance (Hóa Kỵ)
+` : 'Trả lời bằng tiếng Việt, trang trọng, chuyên sâu.'}
 `;
 
   const interpretationResponse = await ai.models.generateContent({
     model,
     contents: interpretationPrompt,
     config: { 
-      thinkingConfig: { thinkingBudget: 15000 },
+      thinkingConfig: { thinkingLevel: ThinkingLevel.HIGH },
       systemInstruction: "Bạn là một bậc thầy Tử Vi cao cấp. Bạn hiểu rõ quy tắc Tầng trên quản tầng dưới, trùng điệp cung vị và quy tắc Nam thuận Nữ nghịch. Bạn luôn lấy năm 2026 làm mốc hiện tại."
     }
   });
@@ -141,22 +181,56 @@ export const chatWithTuViExpert = async (
 ) => {
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || "" });
   const model = 'gemini-3-flash-preview';
+
+  // Chuyển đổi lịch sử chat sang định dạng của Google GenAI SDK
+  const geminiHistory = history.map(msg => ({
+    role: msg.role,
+    parts: [{ text: msg.text }]
+  }));
+
   const chat = ai.chats.create({
     model,
+    history: geminiHistory,
     config: {
       systemInstruction: `
-Bạn là chuyên gia Tử Vi Sơn Cụ. Hiện tại là năm 2026.
-Bạn trả lời dựa trên:
-1. Tri thức 51 trang: ${context.userInfo.knowledgeBase || PRELOADED_KNOWLEDGE}
-2. Dữ liệu lá số: ${context.extractedData}
-3. Nội dung đã luận giải: ${context.interpretation}
+VAI TRÒ: Chuyên gia Tử Vi Sơn Cụ.
+THỜI GIAN HIỆN TẠI: Năm 2026 (Bính Ngọ).
+NGÔN NGỮ TRẢ LỜI: ${context.userInfo.language === 'en' ? 'Tiếng Anh (English)' : 'Tiếng Việt'}.
 
-QUY TẮC CỐT LÕI:
-- Tầng trên quản tầng dưới.
-- Trùng 2 tầng: Biến cố rõ ràng. Trùng 3 tầng: Cực kỳ chính xác.
-- Nam thuận Nữ nghịch khi xét vận hạn Nam Phái.
-- Năm nay là 2026 (Bính Ngọ). Can Bính: Đồng Cơ Xương Liêm.
-- Trả lời tiếng Việt, súc tích.
+NGUỒN DỮ LIỆU BẮT BUỘC (Theo thứ tự ưu tiên):
+1. TÀI LIỆU KIẾN THỨC (QUAN TRỌNG NHẤT):
+   ${context.userInfo.knowledgeBase ? "Sử dụng tài liệu người dùng đã tải lên." : "Sử dụng kiến thức mặc định (Tài liệu 51 trang)."}
+   Nội dung: ${context.userInfo.knowledgeBase || PRELOADED_KNOWLEDGE}
+
+2. DỮ LIỆU LÁ SỐ GỐC (QUÉT TỪ ẢNH):
+   Bắt buộc bám sát thông tin các sao, cung vị trong dữ liệu này:
+   ${context.extractedData}
+
+3. LỊCH SỬ HỘI THOẠI:
+   Ghi nhớ các câu hỏi và câu trả lời trước đó để đảm bảo mạch lạc.
+
+QUY TẮC LUẬN GIẢI KHI CHAT:
+- Trả lời đúng trọng tâm câu hỏi, sử dụng dữ liệu từ lá số gốc.
+- Không bịa đặt sao hoặc vị trí cung nếu không có trong dữ liệu trích xuất.
+- Tuân thủ quy tắc: Tiên Thiên quản Đại Vận, Đại Vận quản Lưu Niên.
+- Kiểm tra trùng điệp cung vị (2 tầng/3 tầng) khi dự đoán hạn.
+- Nam thuận Nữ nghịch (Nam Phái).
+- Luôn lấy năm 2026 làm mốc hiện tại.
+- Phong cách: Chuyên sâu, điềm đạm, dùng từ ngữ chuyên môn nhưng giải thích rõ ràng.
+
+${context.userInfo.language === 'en' ? `
+SPECIAL INSTRUCTION FOR ENGLISH:
+- Respond entirely in English.
+- For technical terms (Stars, Palaces, Cycles, Transformations), use the English translation followed by the original Vietnamese name in parentheses.
+- Examples: 
+  * Emperor Star (Tử Vi)
+  * Major Cycle (Đại Vận)
+  * Minor Cycle (Tiểu Vận)
+  * Life Palace (Cung Mệnh)
+  * Wealth Palace (Cung Tài Bạch)
+  * Transformation to Prosperity (Hóa Lộc)
+  * Transformation to Annoyance (Hóa Kỵ)
+` : ''}
 `,
     }
   });

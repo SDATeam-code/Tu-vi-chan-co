@@ -1,5 +1,6 @@
 
 import React, { useState } from 'react';
+import { Image as ImageIcon, X, ArrowLeft, Sparkles, UploadCloud } from 'lucide-react';
 
 interface Props {
   onImageSelected: (base64: string) => void;
@@ -40,17 +41,20 @@ const ImageUploader: React.FC<Props> = ({ onImageSelected, onBack }) => {
             <img src={preview} alt="Tu Vi Chart Preview" className="max-w-full rounded shadow-md mx-auto" />
             <button
               onClick={() => setPreview(null)}
-              className="absolute top-2 right-2 bg-red-500 text-white p-2 rounded-full hover:bg-red-600 shadow"
+              className="absolute top-2 right-2 bg-red-500 text-white p-2 rounded-full hover:bg-red-600 shadow transition-transform hover:scale-110"
             >
-              ✕
+              <X className="w-5 h-5" />
             </button>
           </div>
         ) : (
-          <label className="flex flex-col items-center gap-3 cursor-pointer w-full h-full">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 text-[#8b4513]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-            </svg>
-            <span className="text-lg font-medium text-[#8b4513]">Chọn ảnh lá số hoặc Kéo thả vào đây</span>
+          <label className="flex flex-col items-center gap-4 cursor-pointer w-full h-full py-10">
+            <div className="p-6 bg-[#f0e6d6] rounded-full shadow-inner">
+              <UploadCloud className="h-16 w-16 text-[#8b4513]" />
+            </div>
+            <div className="text-center">
+              <span className="text-xl font-bold text-[#8b4513] block mb-1">Chọn ảnh lá số</span>
+              <span className="text-sm text-gray-500">hoặc kéo thả vào đây</span>
+            </div>
             <input type="file" className="hidden" accept="image/*" onChange={handleFileChange} />
           </label>
         )}
@@ -59,18 +63,18 @@ const ImageUploader: React.FC<Props> = ({ onImageSelected, onBack }) => {
       <div className="flex gap-4 mt-8">
         <button
           onClick={onBack}
-          className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold py-3 rounded-lg shadow transition-colors"
+          className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold py-4 rounded-xl shadow transition-all flex items-center justify-center gap-2"
         >
-          Quay lại
+          <ArrowLeft className="w-5 h-5" /> Quay lại
         </button>
         <button
           onClick={handleContinue}
           disabled={!preview}
-          className={`flex-1 font-bold py-3 rounded-lg shadow transition-colors ${
+          className={`flex-1 font-bold py-4 rounded-xl shadow transition-all flex items-center justify-center gap-2 ${
             preview ? 'bg-[#8b4513] hover:bg-[#6d3610] text-white' : 'bg-gray-300 text-gray-500 cursor-not-allowed'
           }`}
         >
-          Phân Tích & Luận Giải
+          Phân Tích & Luận Giải <Sparkles className="w-5 h-5" />
         </button>
       </div>
     </div>

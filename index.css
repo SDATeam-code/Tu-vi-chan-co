@@ -1,0 +1,54 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Be Vietnam Pro", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: "Lora", serif;
+  --animate-spin-slow: spin 8s linear infinite;
+}
+
+@layer base {
+  body {
+    @apply bg-[#fcfaf7] text-gray-900;
+  }
+}
+
+@layer components {
+  .tu-vi-card {
+    @apply bg-white border border-[#e2d1b9] shadow-sm;
+    background: linear-gradient(135deg, #ffffff 0%, #fff9f0 100%);
+  }
+
+  .markdown-body {
+    @apply text-gray-800 leading-relaxed;
+  }
+  .markdown-body h1 {
+    @apply text-4xl font-serif font-bold text-center text-[#8b4513] my-12 border-y-2 border-[#d4b38a] py-8 uppercase tracking-widest;
+  }
+  .markdown-body h2 {
+    @apply text-3xl font-serif font-bold text-[#b22222] mt-10 bg-[#fff9f0] p-5 border-l-8 border-[#b22222] shadow-sm;
+  }
+  .markdown-body h3 {
+    @apply text-2xl font-serif font-bold text-[#8b4513] mt-8 border-b-2 border-[#f0e6d6] pb-2;
+  }
+  .markdown-body p {
+    @apply mb-4;
+  }
+  .markdown-body ul {
+    @apply list-disc pl-6 mb-4;
+  }
+  .markdown-body ol {
+    @apply list-decimal pl-6 mb-4;
+  }
+  .markdown-body li {
+    @apply mb-2;
+  }
+  .markdown-body strong {
+    @apply font-bold text-[#8b4513];
+  }
+}
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+}
